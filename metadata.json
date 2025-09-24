@@ -1,0 +1,7 @@
+{
+  "name": "IELTS Practice",
+  "description": "A complete, self-contained, single-page web application for offline IELTS exam preparation. It includes practice modules for Listening, Reading, Writing, and Speaking, with all resources embedded for offline use.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
