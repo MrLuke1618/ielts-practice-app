@@ -13,7 +13,7 @@ import { logActivity } from '../../utils/progressTracker';
 type UserAnswers = { [key: number]: string | string[] };
 
 const ReadingModule: React.FC = () => {
-  const { data } = useData();
+  const { data, setIsAILoading } = useData();
   const [passages, setPassages] = useState<ReadingPassage[]>(data.readingPassages);
   const [selectedTestIndex, setSelectedTestIndex] = useState(0);
   const passage = passages[selectedTestIndex];
@@ -23,9 +23,7 @@ const ReadingModule: React.FC = () => {
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const [, setScores] = useLocalStorage<TestScore[]>('reading-scores', []);
   const [apiKey] = useLocalStorage<string>('gemini-api-key', 'AIzaSyDmKfMMah0cBthsv5YpqxfVP0rV8te-wE4');
-  // FIX: Added targetBandScore to pass as difficulty to the AI generation function.
   const [targetBandScore] = useLocalStorage<number>('target-band-score', 6.5);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
@@ -45,10 +43,9 @@ const ReadingModule: React.FC = () => {
       setGenerationError('Please set your Gemini API key in Settings to use this feature.');
       return;
     }
-    setIsGenerating(true);
+    setIsAILoading(true);
     setGenerationError('');
     try {
-      // FIX: Passed the targetBandScore as the difficulty argument.
       const newPassageData = await generateReadingTest(apiKey, targetBandScore);
       const newPassage: ReadingPassage = {
         ...newPassageData,
@@ -61,7 +58,7 @@ const ReadingModule: React.FC = () => {
       const error = e as Error;
       setGenerationError(error.message || 'Failed to generate test. Please try again.');
     } finally {
-      setIsGenerating(false);
+      setIsAILoading(false);
     }
   };
 
@@ -204,8 +201,8 @@ const ReadingModule: React.FC = () => {
                     ))}
                 </select>
             </div>
-            <Button onClick={handleGenerateTest} disabled={isGenerating} icon={SparklesIcon} variant="secondary" className="h-10">
-                {isGenerating ? '...' : 'New AI Test'}
+            <Button onClick={handleGenerateTest} icon={SparklesIcon} variant="secondary" className="h-10">
+                New AI Test
             </Button>
         </div>
         {generationError && <p className="text-sm text-red-600 dark:text-red-400 mb-4">{generationError}</p>}

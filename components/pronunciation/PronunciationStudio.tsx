@@ -7,18 +7,19 @@ import { getPronunciationFeedback, suggestPronunciationWord, generateTongueTwist
 import { blobToBase64 } from '../../utils/audioConverter';
 import { SpeakerWaveIcon, MicrophoneIcon, StopIcon, LightBulbIcon, SparklesIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import { logActivity } from '../../utils/progressTracker';
+import { useData } from '../../contexts/DataContext';
 
 type PracticeMode = 'singleWord' | 'tongueTwister' | 'minimalPair' | 'sentenceStress';
 
 const PronunciationStudio: React.FC = () => {
     const [apiKey] = useLocalStorage<string>('gemini-api-key', 'AIzaSyDmKfMMah0cBthsv5YpqxfVP0rV8te-wE4');
+    const { setIsAILoading } = useData();
     const [practiceMode, setPracticeMode] = useState<PracticeMode>('singleWord');
     
     // State for all modes
     const [isRecording, setIsRecording] = useState(false);
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [feedback, setFeedback] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [isHelpOpen, setIsHelpOpen] = useState(false);
 
@@ -46,7 +47,6 @@ const PronunciationStudio: React.FC = () => {
         setError('');
         setFeedback('');
         setAudioBlob(null);
-        setIsLoading(false);
         if (isRecording) {
             stopRecording();
         }
@@ -91,7 +91,7 @@ const PronunciationStudio: React.FC = () => {
             return;
         }
         
-        setIsLoading(true);
+        setIsAILoading(true);
         setError('');
         setFeedback('');
 
@@ -111,7 +111,7 @@ const PronunciationStudio: React.FC = () => {
         } catch (e) {
             setError((e as Error).message || 'Failed to get feedback.');
         } finally {
-            setIsLoading(false);
+            setIsAILoading(false);
         }
     };
     
@@ -120,7 +120,7 @@ const PronunciationStudio: React.FC = () => {
             setError('API key is required for suggestions.');
             return;
         }
-        setIsLoading(true);
+        setIsAILoading(true);
         resetState();
         try {
             switch(practiceMode) {
@@ -140,7 +140,7 @@ const PronunciationStudio: React.FC = () => {
         } catch (e) {
             setError((e as Error).message);
         }
-        setIsLoading(false);
+        setIsAILoading(false);
     };
 
     const playAudio = (blob: Blob) => {
@@ -185,7 +185,7 @@ const PronunciationStudio: React.FC = () => {
                                 <button onClick={() => speak(word)} className="absolute inset-y-0 right-0 px-3 flex items-center text-zinc-500 hover:text-indigo-600"><SpeakerWaveIcon className="h-5 w-5"/></button>
                             </div>
                         </div>
-                        <Button onClick={handleGenerateNew} disabled={isLoading || !apiKey} icon={SparklesIcon} variant="secondary" title="Suggest a word" className="w-full sm:w-auto flex-shrink-0">AI Suggest</Button>
+                        <Button onClick={handleGenerateNew} disabled={!apiKey} icon={SparklesIcon} variant="secondary" title="Suggest a word" className="w-full sm:w-auto flex-shrink-0">AI Suggest</Button>
                     </div>
                 );
             case 'tongueTwister':
@@ -196,7 +196,7 @@ const PronunciationStudio: React.FC = () => {
                            <p className="flex-grow text-lg font-semibold text-center text-indigo-700 dark:text-indigo-300">{tongueTwister}</p>
                            <button onClick={() => speak(tongueTwister)} className="p-2 text-zinc-500 hover:text-indigo-600 rounded-full flex-shrink-0"><SpeakerWaveIcon className="h-5 w-5"/></button>
                         </div>
-                        <Button onClick={handleGenerateNew} disabled={isLoading || !apiKey} icon={SparklesIcon} variant="secondary">New Tongue Twister</Button>
+                        <Button onClick={handleGenerateNew} disabled={!apiKey} icon={SparklesIcon} variant="secondary">New Tongue Twister</Button>
                     </div>
                  );
             case 'minimalPair':
@@ -215,7 +215,7 @@ const PronunciationStudio: React.FC = () => {
                                  <p><em>{minimalPair?.sentences[1]}</em></p>
                              </div>
                          </div>
-                         <Button onClick={handleGenerateNew} disabled={isLoading || !apiKey} icon={SparklesIcon} variant="secondary">New Minimal Pair</Button>
+                         <Button onClick={handleGenerateNew} disabled={!apiKey} icon={SparklesIcon} variant="secondary">New Minimal Pair</Button>
                      </div>
                  );
             case 'sentenceStress':
@@ -226,7 +226,7 @@ const PronunciationStudio: React.FC = () => {
                            <p className="flex-grow text-lg font-semibold text-center text-indigo-700 dark:text-indigo-300">{sentenceStress}</p>
                            <button onClick={() => speak(sentenceStress)} className="p-2 text-zinc-500 hover:text-indigo-600 rounded-full flex-shrink-0"><SpeakerWaveIcon className="h-5 w-5"/></button>
                         </div>
-                        <Button onClick={handleGenerateNew} disabled={isLoading || !apiKey} icon={SparklesIcon} variant="secondary">New Sentence</Button>
+                        <Button onClick={handleGenerateNew} disabled={!apiKey} icon={SparklesIcon} variant="secondary">New Sentence</Button>
                     </div>
                 );
         }
@@ -271,8 +271,8 @@ const PronunciationStudio: React.FC = () => {
                         )}
 
                         <p className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">3. Get AI Feedback</p>
-                        <Button onClick={handleGetFeedback} disabled={isLoading || !audioBlob} icon={LightBulbIcon}>
-                            {isLoading ? 'Analyzing...' : 'Analyze My Pronunciation'}
+                        <Button onClick={handleGetFeedback} disabled={!audioBlob} icon={LightBulbIcon}>
+                            Analyze My Pronunciation
                         </Button>
                     </div>
                      {error && <p className="text-sm text-red-600 dark:text-red-400 mt-4">{error}</p>}

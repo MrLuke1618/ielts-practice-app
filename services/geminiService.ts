@@ -543,7 +543,9 @@ export const generateTongueTwister = async (apiKey: string): Promise<string> => 
 export const generateMinimalPairs = async (apiKey: string): Promise<{ pair: [string, string]; sentences: [string, string] }> => {
     if (!apiKey) throw new Error("API Key not provided.");
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Create one minimal pair exercise for a 13-year-old Vietnamese English learner. Focus on a common challenge, like /iː/ vs /ɪ/ (sheep/ship) or final consonants. Provide the two words and a simple example sentence for each. Return a single JSON object.`;
+    const prompt = `Create one creative and less common minimal pair exercise for a 13-year-old Vietnamese English learner. 
+Focus on a common phonological challenge, but avoid overly used examples like 'ship/sheep'. Think of pairs like 'fan/van', 'thin/tin', 'lice/rice'.
+Provide the two words and a simple, distinct example sentence for each. Return a single JSON object.`;
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',

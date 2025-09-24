@@ -9,6 +9,7 @@ import { LightBulbIcon, QuestionMarkCircleIcon, ChevronDownIcon } from '@heroico
 import { logActivity } from '../../utils/progressTracker';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useData } from '../../contexts/DataContext';
 
 const ScoreChart: React.FC<{ data: TestScore[], title: string, color: string, theme: 'light' | 'dark' }> = ({ data, title, color, theme }) => {
     if (data.length < 2) {
@@ -101,7 +102,8 @@ const AccordionItem: React.FC<{
 
 const AnalysisModule: React.FC = () => {
   const [apiKey] = useLocalStorage<string>('gemini-api-key', 'AIzaSyDmKfMMah0cBthsv5YpqxfVP0rV8te-wE4');
-  const [isLoading, setIsLoading] = useState(false);
+  // FIX: Destructure isAILoading from useData context to use for loading state.
+  const { isAILoading, setIsAILoading } = useData();
   const [analysis, setAnalysis] = useLocalStorage<string>('ai-analysis-report', '');
   const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null);
   const [listeningHistory, setListeningHistory] = useState<TestScore[]>([]);
@@ -136,25 +138,31 @@ const AnalysisModule: React.FC = () => {
 
   const handleGeneratePlan = async () => {
     if (!performanceData) return;
-    setIsLoading(true);
+    setIsAILoading(true);
     setAnalysis('');
-    const result = await getOverallAnalysis(apiKey, performanceData);
-    setAnalysis(result);
-    setIsLoading(false);
-    logActivity('ANALYSIS_GENERATED');
+    try {
+        const result = await getOverallAnalysis(apiKey, performanceData);
+        setAnalysis(result);
+        logActivity('ANALYSIS_GENERATED');
 
-    // Extract and save the weekly plan for the dashboard
-    const planSection = result.match(/### Your Personalized 1-Week Study Plan 🗓️([\s\S]*?)###/);
-    if (planSection && planSection[1]) {
-        const planItems = planSection[1]
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line.startsWith('- **Day') || line.startsWith('* **Day'));
-        
-        const structuredPlan = planItems.map(item => ({ text: item, completed: false }));
-        localStorage.setItem('weekly-study-plan', JSON.stringify(structuredPlan));
-    } else {
-         localStorage.removeItem('weekly-study-plan');
+        // Extract and save the weekly plan for the dashboard
+        const planSection = result.match(/### Your Personalized 1-Week Study Plan 🗓️([\s\S]*?)###/);
+        if (planSection && planSection[1]) {
+            const planItems = planSection[1]
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.startsWith('- **Day') || line.startsWith('* **Day'));
+            
+            const structuredPlan = planItems.map(item => ({ text: item, completed: false }));
+            localStorage.setItem('weekly-study-plan', JSON.stringify(structuredPlan));
+        } else {
+             localStorage.removeItem('weekly-study-plan');
+        }
+    } catch (e) {
+        console.error("Failed to generate study plan:", e);
+        setAnalysis("An error occurred while generating your analysis. Please check your API key and try again.");
+    } finally {
+        setIsAILoading(false);
     }
   };
   
@@ -234,8 +242,9 @@ const AnalysisModule: React.FC = () => {
       </Card>
       
       <div className="text-center">
-        <Button onClick={handleGeneratePlan} disabled={isLoading || !apiKey} icon={LightBulbIcon} className="w-full sm:w-auto">
-            {isLoading ? "Generating Your Plan..." : "Generate My Study Plan"}
+        {/* FIX: Replaced undefined `isLoading` with `isAILoading` from context. */}
+        <Button onClick={handleGeneratePlan} disabled={isAILoading || !apiKey} icon={LightBulbIcon} className="w-full sm:w-auto">
+            {isAILoading ? "Generating Your Plan..." : "Generate My Study Plan"}
         </Button>
         {!apiKey && <p className="text-sm text-amber-700 dark:text-amber-500 mt-2">Note: This feature requires a Gemini API key set in Settings.</p>}
       </div>

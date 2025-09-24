@@ -13,7 +13,7 @@ import TTSPlayer from '../ui/TTSPlayer';
 type UserAnswers = { [key: number]: string };
 
 const ListeningModule: React.FC = () => {
-  const { data } = useData();
+  const { data, setIsAILoading } = useData();
   const [tests, setTests] = useState<ListeningTest[]>(data.listeningTests);
   const [selectedTestIndex, setSelectedTestIndex] = useState(0);
   const test = tests[selectedTestIndex];
@@ -24,9 +24,7 @@ const ListeningModule: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [, setScores] = useLocalStorage<TestScore[]>('listening-scores', []);
   const [apiKey] = useLocalStorage<string>('gemini-api-key', 'AIzaSyDmKfMMah0cBthsv5YpqxfVP0rV8te-wE4');
-  // FIX: Added targetBandScore to pass as difficulty to the AI generation function.
   const [targetBandScore] = useLocalStorage<number>('target-band-score', 6.5);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [aiTestType, setAiTestType] = useState<ListeningTestType>('Everyday Conversation');
@@ -67,10 +65,9 @@ const ListeningModule: React.FC = () => {
         setGenerationError('Please set your Gemini API key in Settings to use this feature.');
         return;
     }
-    setIsGenerating(true);
+    setIsAILoading(true);
     setGenerationError('');
     try {
-        // FIX: Passed the targetBandScore as the difficulty argument.
         const newTestPartial = await generateListeningTest(apiKey, aiTestType, targetBandScore);
         const newTest: ListeningTest = {
             ...newTestPartial,
@@ -89,7 +86,7 @@ const ListeningModule: React.FC = () => {
         setGenerationError(error.message || 'Failed to generate test. Please try again.');
         console.error(e);
     }
-    setIsGenerating(false);
+    setIsAILoading(false);
   };
 
   const handleInputChange = (questionId: number, value: string) => {
@@ -272,8 +269,8 @@ const ListeningModule: React.FC = () => {
                             <option value="Everyday Conversation">Conversation</option>
                             <option value="Academic Monologue">Monologue</option>
                         </select>
-                        <Button onClick={handleGenerateTest} disabled={isGenerating} icon={SparklesIcon} variant="secondary">
-                            {isGenerating ? '...' : 'Generate'}
+                        <Button onClick={handleGenerateTest} icon={SparklesIcon} variant="secondary">
+                            Generate
                         </Button>
                     </div>
                     {generationError && <p className="text-sm text-red-600 dark:text-red-400 mt-2">{generationError}</p>}

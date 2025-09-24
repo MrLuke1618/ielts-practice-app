@@ -5,6 +5,7 @@ import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { generateGrammarExercise } from '../../services/geminiService';
 import { SparklesIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { logActivity } from '../../utils/progressTracker';
+import { useData } from '../../contexts/DataContext';
 
 type ExerciseType = 'Error Spotting' | 'Tense Practice' | 'Sentence Transformation' | 'Word Forms';
 
@@ -17,11 +18,11 @@ const exerciseDescriptions: Record<ExerciseType, string> = {
 
 const GrammarModule: React.FC = () => {
     const [apiKey] = useLocalStorage<string>('gemini-api-key', 'AIzaSyDmKfMMah0cBthsv5YpqxfVP0rV8te-wE4');
+    const { setIsAILoading } = useData();
     const [exerciseType, setExerciseType] = useState<ExerciseType>('Error Spotting');
     const [currentExercise, setCurrentExercise] = useState<{ question: string; answer: string } | null>(null);
     const [userAnswer, setUserAnswer] = useState('');
     const [feedback, setFeedback] = useState<{ message: string, isCorrect: boolean } | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleGenerateExercise = async () => {
@@ -29,7 +30,7 @@ const GrammarModule: React.FC = () => {
             setError('Please set your Gemini API key in Settings to use this feature.');
             return;
         }
-        setIsLoading(true);
+        setIsAILoading(true);
         setError('');
         setFeedback(null);
         setUserAnswer('');
@@ -40,7 +41,7 @@ const GrammarModule: React.FC = () => {
         } catch (e) {
             setError((e as Error).message || 'Failed to generate exercise.');
         } finally {
-            setIsLoading(false);
+            setIsAILoading(false);
         }
     };
 
@@ -93,8 +94,8 @@ const GrammarModule: React.FC = () => {
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
                         {exerciseDescriptions[exerciseType]}
                     </p>
-                    <Button onClick={handleGenerateExercise} disabled={isLoading} icon={SparklesIcon} variant="secondary">
-                        {isLoading ? 'Generating...' : 'New Exercise'}
+                    <Button onClick={handleGenerateExercise} disabled={!apiKey} icon={SparklesIcon} variant="secondary">
+                        New Exercise
                     </Button>
                     {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
                     

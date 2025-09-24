@@ -12,11 +12,16 @@ import GrammarModule from './components/grammar/GrammarModule';
 import PronunciationStudio from './components/pronunciation/PronunciationStudio';
 import ParaphrasingTool from './components/paraphrasing/ParaphrasingTool';
 import Footer from './components/ui/Footer';
+import OnboardingModal from './components/ui/OnboardingModal';
 import { AcademicCapIcon, BookOpenIcon, MusicalNoteIcon, PencilSquareIcon, MicrophoneIcon, Cog6ToothIcon, HomeIcon, SparklesIcon, VariableIcon, SpeakerWaveIcon, ChatBubbleLeftRightIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useData } from './contexts/DataContext';
+import { useLocalStorage } from './hooks/useLocalStorage';
 
 const App: React.FC = () => {
   const [activeModule, setActiveModule] = useState<Module>(Module.DASHBOARD);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const { isAILoading } = useData();
+  const [hasOnboarded, setHasOnboarded] = useLocalStorage('has-onboarded', false);
 
   const renderModule = () => {
     switch (activeModule) {
@@ -95,6 +100,14 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex bg-zinc-100 dark:bg-zinc-900">
+      <OnboardingModal 
+        isOpen={!hasOnboarded}
+        onClose={() => setHasOnboarded(true)}
+        onGoToSettings={() => {
+          setActiveModule(Module.SETTINGS);
+          setHasOnboarded(true);
+        }}
+      />
        {/* Mobile Sidebar (Drawer) */}
       <div className={`sm:hidden fixed inset-0 z-40 transition-opacity duration-300 ${isMobileNavOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         {/* Backdrop */}
@@ -139,6 +152,9 @@ const App: React.FC = () => {
             <div className='flex items-center space-x-2'>
                 <AcademicCapIcon className="h-8 w-8 text-indigo-600" />
                 <h1 className="text-xl font-bold text-zinc-800 dark:text-zinc-100">IELTS Practice Pod</h1>
+                {isAILoading && (
+                  <SparklesIcon className="h-5 w-5 text-indigo-500 dark:text-indigo-400 animate-spin" />
+                )}
             </div>
         </div>
         <nav className="flex-grow p-4 space-y-2">

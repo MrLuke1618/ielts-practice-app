@@ -5,13 +5,14 @@ import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { getParaphrasedText } from '../../services/geminiService';
 import { ArrowsRightLeftIcon, ClipboardDocumentIcon, CheckIcon, LightBulbIcon, StarIcon as StarIconOutline, TrashIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { useData } from '../../contexts/DataContext';
 
 
 const ParaphrasingTool: React.FC = () => {
     const [apiKey] = useLocalStorage<string>('gemini-api-key', 'AIzaSyDmKfMMah0cBthsv5YpqxfVP0rV8te-wE4');
+    const { setIsAILoading } = useData();
     const [inputText, setInputText] = useState('');
     const [paraphrases, setParaphrases] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
     const [view, setView] = useState<'suggestions' | 'saved'>('suggestions');
@@ -24,7 +25,7 @@ const ParaphrasingTool: React.FC = () => {
     const handleParaphrase = async () => {
         setError('');
         setParaphrases([]);
-        setIsLoading(true);
+        setIsAILoading(true);
         setView('suggestions');
         try {
             const results = await getParaphrasedText(apiKey, inputText, selectedTone);
@@ -32,7 +33,7 @@ const ParaphrasingTool: React.FC = () => {
         } catch (e) {
             setError((e as Error).message);
         } finally {
-            setIsLoading(false);
+            setIsAILoading(false);
         }
     };
 
@@ -96,14 +97,14 @@ const ParaphrasingTool: React.FC = () => {
                             placeholder="e.g., The increasing popularity of the internet has dramatically changed how people communicate."
                         />
                     </div>
-                    <Button onClick={handleParaphrase} disabled={isLoading || !inputText.trim()} icon={ArrowsRightLeftIcon}>
-                        {isLoading ? 'Paraphrasing...' : `Paraphrase as ${selectedTone}`}
+                    <Button onClick={handleParaphrase} disabled={!inputText.trim()} icon={ArrowsRightLeftIcon}>
+                        {`Paraphrase as ${selectedTone}`}
                     </Button>
                     {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
                 </div>
             </Card>
 
-            {(isLoading || paraphrases.length > 0 || savedParaphrases.length > 0) && (
+            {(paraphrases.length > 0 || savedParaphrases.length > 0) && (
                  <Card>
                     <div className="flex border-b dark:border-zinc-700 mb-4">
                         <button 
@@ -120,13 +121,7 @@ const ParaphrasingTool: React.FC = () => {
                         </button>
                     </div>
 
-                    {isLoading && view === 'suggestions' ? (
-                        <div className="space-y-4">
-                            {[...Array(3)].map((_, i) => (
-                                <div key={i} className="animate-pulse bg-zinc-200 dark:bg-zinc-700 rounded-lg h-16 w-full"></div>
-                            ))}
-                        </div>
-                    ) : view === 'suggestions' ? (
+                    {view === 'suggestions' ? (
                         <ul className="space-y-4">
                             {paraphrases.map((phrase, index) => {
                                 const isSaved = savedParaphrases.includes(phrase);

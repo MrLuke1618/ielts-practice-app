@@ -6,13 +6,12 @@ import HelpModal from '../ui/HelpModal';
 import { SpeakerWaveIcon, ArrowLeftIcon, ArrowRightIcon, ArrowsRightLeftIcon, QuestionMarkCircleIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { generateVocabularyQuiz, VocabularyQuiz, generateVocabularyList } from '../../services/geminiService';
-// FIX: Imported VocabularyCategory type to correctly type component props.
 import { VocabularyCategory } from '../../types';
 
 type ActiveView = 'flashcards' | 'aiPractice';
 
 const VocabularyModule: React.FC = () => {
-  const { data, addVocabularyCategory } = useData();
+  const { data, addVocabularyCategory, setIsAILoading } = useData();
   const [apiKey] = useLocalStorage<string>('gemini-api-key', 'AIzaSyDmKfMMah0cBthsv5YpqxfVP0rV8te-wE4');
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -20,7 +19,6 @@ const VocabularyModule: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTopic, setNewTopic] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [topicToSelect, setTopicToSelect] = useState('');
 
@@ -53,7 +51,7 @@ const VocabularyModule: React.FC = () => {
         setGenerationError('Please set your Gemini API key in Settings to use this feature.');
         return;
     }
-    setIsGenerating(true);
+    setIsAILoading(true);
     setGenerationError('');
     try {
         const newWords = await generateVocabularyList(apiKey, newTopic);
@@ -72,7 +70,7 @@ const VocabularyModule: React.FC = () => {
     } catch (e) {
         setGenerationError((e as Error).message);
     } finally {
-        setIsGenerating(false);
+        setIsAILoading(false);
     }
   };
 
@@ -156,8 +154,8 @@ const VocabularyModule: React.FC = () => {
               {generationError && <p className="text-sm text-red-600 dark:text-red-400">{generationError}</p>}
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleGenerateCategory} disabled={isGenerating}>
-                  {isGenerating ? 'Generating...' : 'Generate'}
+                <Button onClick={handleGenerateCategory}>
+                  Generate
                 </Button>
               </div>
             </div>
@@ -191,8 +189,6 @@ const VocabularyModule: React.FC = () => {
 };
 
 
-// FIX: Changed category prop type from 'any' to the specific 'VocabularyCategory' type.
-// This resolves a TypeScript error where an array of keys was incorrectly inferred as 'unknown[]'.
 const FlashcardView: React.FC<{ category: VocabularyCategory | undefined }> = ({ category }) => {
     const [currentWordIndex, setCurrentWordIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
@@ -203,7 +199,7 @@ const FlashcardView: React.FC<{ category: VocabularyCategory | undefined }> = ({
 
     const shuffleWords = useCallback(() => {
         if (words.length === 0) return;
-        const indices = Array.from(words.keys());
+        const indices = Array.from(Array(words.length).keys());
         for (let i = indices.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [indices[i], indices[j]] = [indices[j], indices[i]];
@@ -321,10 +317,9 @@ const FlashcardView: React.FC<{ category: VocabularyCategory | undefined }> = ({
     )
 }
 
-// FIX: Changed category prop type from 'any' to 'VocabularyCategory' for type safety and consistency.
 const AIQuizView: React.FC<{ category: VocabularyCategory | undefined, apiKey: string }> = ({ category, apiKey }) => {
+    const { setIsAILoading } = useData();
     const [quiz, setQuiz] = useState<VocabularyQuiz | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [userSelection, setUserSelection] = useState<{ word: string, index: number } | null>(null);
 
@@ -338,7 +333,7 @@ const AIQuizView: React.FC<{ category: VocabularyCategory | undefined, apiKey: s
             setError('Please set your Gemini API key in Settings to use this feature.');
             return;
         }
-        setIsLoading(true);
+        setIsAILoading(true);
         setError('');
         setQuiz(null);
         setUserSelection(null);
@@ -348,7 +343,7 @@ const AIQuizView: React.FC<{ category: VocabularyCategory | undefined, apiKey: s
         } catch (e) {
             setError((e as Error).message);
         } finally {
-            setIsLoading(false);
+            setIsAILoading(false);
         }
     };
     
@@ -360,8 +355,8 @@ const AIQuizView: React.FC<{ category: VocabularyCategory | undefined, apiKey: s
     return (
         <Card>
             <div className="space-y-4">
-                <Button onClick={handleGenerateQuiz} disabled={isLoading} icon={SparklesIcon} variant="primary">
-                    {isLoading ? 'Generating...' : (quiz ? 'New Question' : 'Generate AI Quiz')}
+                <Button onClick={handleGenerateQuiz} icon={SparklesIcon} variant="primary">
+                    {quiz ? 'New Question' : 'Generate AI Quiz'}
                 </Button>
                 {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
                 
@@ -403,7 +398,7 @@ const AIQuizView: React.FC<{ category: VocabularyCategory | undefined, apiKey: s
                         )}
                     </div>
                 )}
-                 {!quiz && !isLoading && (
+                 {!quiz && (
                     <div className="text-center py-8">
                         <SparklesIcon className="mx-auto h-12 w-12 text-zinc-400" />
                         <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-200">Ready to Practice?</h3>

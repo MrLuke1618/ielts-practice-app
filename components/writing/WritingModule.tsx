@@ -14,12 +14,11 @@ import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 type ActiveTab = 'Task 1' | 'Task 2';
 
 const WritingEditor: React.FC<{ task?: WritingTask, apiKey: string }> = ({ task, apiKey }) => {
+  const { setIsAILoading } = useData();
   const [essay, setEssay] = useLocalStorage<string>(`writing-essay-${task?.id || 'default'}`, '');
   const [wordCount, setWordCount] = useState(0);
   const [feedback, setFeedback] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [imageSrc, setImageSrc] = useState(task?.imageSrc);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageError, setImageError] = useState('');
 
   const { isRecognizing, transcript, startRecognition, stopRecognition, isSupported } = useSpeechRecognition();
@@ -55,16 +54,21 @@ const WritingEditor: React.FC<{ task?: WritingTask, apiKey: string }> = ({ task,
   if (!task) return <Card><p>No writing task found. Please import data or reset to default in Settings.</p></Card>;
   
   const handleGetFeedback = async () => {
-    setIsLoading(true);
+    setIsAILoading(true);
     setFeedback('');
-    const result = await getWritingFeedback(apiKey, task.type, essay);
-    setFeedback(result);
-    setIsLoading(false);
+    try {
+        const result = await getWritingFeedback(apiKey, task.type, essay);
+        setFeedback(result);
 
-    if (result && !result.toLowerCase().includes('error') && !result.toLowerCase().includes('api key not provided')) {
-        const storageKey = `writing-feedback-${task.type.replace(/\s+/g, '').toLowerCase()}`;
-        localStorage.setItem(storageKey, result);
-        logActivity('WRITING_FEEDBACK_RECEIVED');
+        if (result && !result.toLowerCase().includes('error') && !result.toLowerCase().includes('api key not provided')) {
+            const storageKey = `writing-feedback-${task.type.replace(/\s+/g, '').toLowerCase()}`;
+            localStorage.setItem(storageKey, result);
+            logActivity('WRITING_FEEDBACK_RECEIVED');
+        }
+    } catch(e) {
+        setFeedback("An error occurred while getting feedback.");
+    } finally {
+        setIsAILoading(false);
     }
   };
   
@@ -73,7 +77,7 @@ const WritingEditor: React.FC<{ task?: WritingTask, apiKey: string }> = ({ task,
         setImageError('Please set your Gemini API key in Settings to generate an image.');
         return;
     }
-    setIsGeneratingImage(true);
+    setIsAILoading(true);
     setImageError('');
     try {
         const newImage = await generateImageFromPrompt(apiKey, task.imageGenerationPrompt || 'a random data chart');
@@ -81,7 +85,7 @@ const WritingEditor: React.FC<{ task?: WritingTask, apiKey: string }> = ({ task,
     } catch (error) {
         setImageError(error instanceof Error ? error.message : 'Failed to generate image.');
     }
-    setIsGeneratingImage(false);
+    setIsAILoading(false);
   };
 
   const downloadEssay = () => {
@@ -111,8 +115,8 @@ const WritingEditor: React.FC<{ task?: WritingTask, apiKey: string }> = ({ task,
             <div className="flex justify-between items-start">
                 <h3 className="text-xl font-semibold mb-2 dark:text-zinc-100">{task.type} Prompt</h3>
                 {task.type === 'Task 1' && (
-                    <Button onClick={handleGenerateImage} disabled={isGeneratingImage} icon={SparklesIcon} variant="secondary">
-                        {isGeneratingImage ? 'Generating...' : 'New AI Image'}
+                    <Button onClick={handleGenerateImage} icon={SparklesIcon} variant="secondary">
+                        New AI Image
                     </Button>
                 )}
             </div>
@@ -163,8 +167,8 @@ const WritingEditor: React.FC<{ task?: WritingTask, apiKey: string }> = ({ task,
         />
 
         <div>
-            <Button onClick={handleGetFeedback} disabled={isLoading} icon={LightBulbIcon}>
-                {isLoading ? 'Getting Feedback...' : 'Get AI Feedback'}
+            <Button onClick={handleGetFeedback} icon={LightBulbIcon}>
+                Get AI Feedback
             </Button>
         </div>
 
@@ -179,14 +183,13 @@ const WritingEditor: React.FC<{ task?: WritingTask, apiKey: string }> = ({ task,
 }
 
 const WritingModule: React.FC = () => {
+  const { data, setIsAILoading } = useData();
   const [activeTab, setActiveTab] = useState<ActiveTab>('Task 1');
   const [apiKey] = useLocalStorage<string>('gemini-api-key', 'AIzaSyDmKfMMah0cBthsv5YpqxfVP0rV8te-wE4');
   const [targetBandScore] = useLocalStorage<number>('target-band-score', 6.5);
-  const { data } = useData();
   const [writingTasks, setWritingTasks] = useState<WritingTask[]>(data.writingTasks || []);
   const [selectedTask1Index, setSelectedTask1Index] = useState(0);
   const [selectedTask2Index, setSelectedTask2Index] = useState(0);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState('');
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
@@ -204,7 +207,7 @@ const WritingModule: React.FC = () => {
       setGenerationError('Please set your Gemini API key in Settings to use this feature.');
       return;
     }
-    setIsGenerating(true);
+    setIsAILoading(true);
     setGenerationError('');
     try {
       const newTask = await generateWritingTask(apiKey, activeTab, targetBandScore);
@@ -217,7 +220,7 @@ const WritingModule: React.FC = () => {
     } catch (e) {
       setGenerationError((e as Error).message || 'Failed to generate prompt.');
     } finally {
-      setIsGenerating(false);
+      setIsAILoading(false);
     }
   };
 
@@ -247,8 +250,8 @@ const WritingModule: React.FC = () => {
             </button>
         </div>
         <div className="flex items-center gap-4">
-            <Button onClick={handleGeneratePrompt} disabled={isGenerating} icon={SparklesIcon} variant="secondary">
-                {isGenerating ? '...' : 'New AI Prompt'}
+            <Button onClick={handleGeneratePrompt} icon={SparklesIcon} variant="secondary">
+                New AI Prompt
             </Button>
             <div className="flex space-x-2 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
               <TabButton tabName="Task 1" />

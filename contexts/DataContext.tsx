@@ -8,6 +8,8 @@ interface DataContextType {
   exportData: () => void;
   resetData: () => void;
   addVocabularyCategory: (newCategory: VocabularyCategory) => void;
+  isAILoading: boolean;
+  setIsAILoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -27,6 +29,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     return defaultAllData;
   });
+  const [isAILoading, setIsAILoading] = useState(false);
 
   useEffect(() => {
     try {
@@ -121,7 +124,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
   return (
-    <DataContext.Provider value={{ data, importData, exportData, resetData, addVocabularyCategory }}>
+    <DataContext.Provider value={{ data, importData, exportData, resetData, addVocabularyCategory, isAILoading, setIsAILoading }}>
       {children}
     </DataContext.Provider>
   );

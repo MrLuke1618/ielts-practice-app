@@ -9,6 +9,7 @@ import { PlayIcon, StopIcon, ArrowDownTrayIcon, PencilIcon, CheckIcon, Microphon
 import { getSpeakingFeedback } from '../../services/geminiService';
 import { logActivity } from '../../utils/progressTracker';
 import { SpeakingAttempt } from '../../types';
+import { useData } from '../../contexts/DataContext';
 
 interface RecordingControlsProps {
     prompt: React.ReactNode;
@@ -41,7 +42,7 @@ const RecordingControls: React.FC<RecordingControlsProps> = ({ prompt, apiKey, p
 
     // For AI Feedback
     const [feedback, setFeedback] = useState<string>('');
-    const [isFetchingFeedback, setIsFetchingFeedback] = useState(false);
+    const { setIsAILoading } = useData();
 
     const cleanup = () => {
         if (sourceNode.current && sourceNode.current.mediaStream) {
@@ -104,37 +105,42 @@ const RecordingControls: React.FC<RecordingControlsProps> = ({ prompt, apiKey, p
     }, [isRecognizing, stopRecognition]);
     
     const handleGetFeedback = async () => {
-        setIsFetchingFeedback(true);
+        setIsAILoading(true);
         setFeedback('');
 
         // Save final transcript for analysis module
         localStorage.setItem(`speaking-transcript-${partId}`, transcript);
-
-        const result = await getSpeakingFeedback(apiKey, transcript);
-        setFeedback(result);
-        setIsFetchingFeedback(false);
         
-        // Save feedback to local storage for the analysis module
-        if (result && !result.toLowerCase().includes('error')) {
-            localStorage.setItem(`speaking-feedback-${partId}`, result);
-            logActivity('SPEAKING_FEEDBACK_RECEIVED');
+        try {
+            const result = await getSpeakingFeedback(apiKey, transcript);
+            setFeedback(result);
             
-            // Save the full attempt for history
-            if (audioBlob) {
-                try {
-                    const wavBlob = await blobToWav(audioBlob);
-                    const audioDataUrl = await blobToDataUrl(wavBlob);
-                    onSaveAttempt({
-                        practiceId,
-                        partId,
-                        audioDataUrl,
-                        transcript,
-                        feedback: result
-                    });
-                } catch (e) {
-                    console.error("Failed to save speaking attempt to history:", e);
+            // Save feedback to local storage for the analysis module
+            if (result && !result.toLowerCase().includes('error')) {
+                localStorage.setItem(`speaking-feedback-${partId}`, result);
+                logActivity('SPEAKING_FEEDBACK_RECEIVED');
+                
+                // Save the full attempt for history
+                if (audioBlob) {
+                    try {
+                        const wavBlob = await blobToWav(audioBlob);
+                        const audioDataUrl = await blobToDataUrl(wavBlob);
+                        onSaveAttempt({
+                            practiceId,
+                            partId,
+                            audioDataUrl,
+                            transcript,
+                            feedback: result
+                        });
+                    } catch (e) {
+                        console.error("Failed to save speaking attempt to history:", e);
+                    }
                 }
             }
+        } catch (e) {
+            setFeedback("An error occurred while getting feedback.");
+        } finally {
+            setIsAILoading(false);
         }
     };
 
@@ -257,10 +263,10 @@ const RecordingControls: React.FC<RecordingControlsProps> = ({ prompt, apiKey, p
                             <p className="text-sm text-indigo-700 dark:text-indigo-300 mb-4">Your transcript is ready. Get instant feedback on your performance. This will also save your recording to the 'History' tab.</p>
                             <Button
                                 onClick={handleGetFeedback}
-                                disabled={isFetchingFeedback || !apiKey}
+                                disabled={!apiKey}
                                 icon={LightBulbIcon}
                             >
-                                {isFetchingFeedback ? 'Getting Feedback...' : 'Get AI Feedback'}
+                                Get AI Feedback
                             </Button>
                             {!apiKey && <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">To use this feature, please add your Gemini API key in the Settings page.</p>}
                         </div>
