@@ -7,7 +7,7 @@ import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Timer from '../ui/Timer';
 import HelpModal from '../ui/HelpModal';
-import { DocumentTextIcon, LightBulbIcon, SparklesIcon, QuestionMarkCircleIcon, MicrophoneIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, LightBulbIcon, SparklesIcon, QuestionMarkCircleIcon, MicrophoneIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { logActivity } from '../../utils/progressTracker';
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 
@@ -121,6 +121,15 @@ const WritingEditor: React.FC<{ task?: WritingTask, apiKey: string }> = ({ task,
             {task.type === 'Task 1' && imageSrc && <img src={imageSrc} alt="Task 1 diagram" className="my-4 border dark:border-zinc-700 rounded-lg max-w-full h-auto" />}
             
             <p className="text-zinc-700 dark:text-zinc-300">{task.prompt}</p>
+
+            {task.type === 'Task 1' && !imageSrc && task.imageGenerationPrompt && (
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-600 rounded-r-lg flex items-center gap-2">
+                    <InformationCircleIcon className="h-5 w-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                        This is an AI-generated prompt. Click the "New AI Image" button to generate the chart.
+                    </p>
+                </div>
+            )}
         </Card>
         
         <div className="flex flex-wrap justify-between items-center gap-2 sm:sticky sm:top-0 bg-zinc-100 dark:bg-zinc-900 py-2 z-10">
@@ -172,7 +181,6 @@ const WritingEditor: React.FC<{ task?: WritingTask, apiKey: string }> = ({ task,
 const WritingModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('Task 1');
   const [apiKey] = useLocalStorage<string>('gemini-api-key', 'AIzaSyDmKfMMah0cBthsv5YpqxfVP0rV8te-wE4');
-  // FIX: Added targetBandScore to pass as difficulty to the AI generation function.
   const [targetBandScore] = useLocalStorage<number>('target-band-score', 6.5);
   const { data } = useData();
   const [writingTasks, setWritingTasks] = useState<WritingTask[]>(data.writingTasks || []);
@@ -199,7 +207,6 @@ const WritingModule: React.FC = () => {
     setIsGenerating(true);
     setGenerationError('');
     try {
-      // FIX: Passed the targetBandScore as the difficulty argument.
       const newTask = await generateWritingTask(apiKey, activeTab, targetBandScore);
       setWritingTasks(prev => [...prev, newTask]);
       if (activeTab === 'Task 1') {

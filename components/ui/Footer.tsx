@@ -17,7 +17,7 @@ const Footer: React.FC = () => {
 
     return (
         <footer className="w-full mt-auto bg-zinc-200 dark:bg-zinc-700 border-t border-zinc-300 dark:border-zinc-600 p-4 text-zinc-600 dark:text-zinc-300 text-sm">
-            <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
                 <p className="copyright-text order-3 md:order-1">&copy; 2025 MrLuke1618. All rights reserved.</p>
                 <div id="quote-container" className="italic order-1 md:order-2 text-center">
                     <p id="quote-text">"{quote}"</p>

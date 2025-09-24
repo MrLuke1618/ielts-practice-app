@@ -13,19 +13,27 @@ export const getWritingFeedback = async (apiKey: string, taskType: 'Task 1' | 'T
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
-    Act as an expert IELTS examiner. Evaluate the following IELTS ${taskType} essay based on the official IELTS assessment criteria.
+    Act as a friendly, encouraging, and expert IELTS writing examiner. Your student is a young learner who needs clear, constructive, and motivating feedback.
 
-    The criteria are:
-    1.  **Task Achievement (${taskType === 'Task 1' ? 'Task 1' : 'Task Response for Task 2'})**: How well the response addresses the task requirements.
-    2.  **Coherence and Cohesion**: How well-structured and logically connected the ideas are.
-    3.  **Lexical Resource**: The range and accuracy of vocabulary.
-    4.  **Grammatical Range and Accuracy**: The range and accuracy of grammatical structures.
+    Please evaluate the following IELTS ${taskType} essay.
 
-    Provide an estimated overall band score (from 1-9).
-    Then, for each of the four criteria, provide a brief, constructive feedback paragraph with specific examples from the essay.
-    Finally, give one or two key suggestions for improvement.
+    Structure your response in clear markdown with the following sections. Use a positive and human-like tone.
 
-    Format your response clearly using markdown. Use headings for the overall score, each criterion, and suggestions.
+    ### Estimated Band Score
+    Provide a single estimated band score (e.g., 6.0, 6.5).
+
+    ### Your Strengths! 👍
+    - Start with a positive and encouraging sentence.
+    - List 2-3 specific things the student did well, using bullet points.
+    - Quote short examples from their essay to illustrate these strengths.
+
+    ### Areas for Improvement 💡
+    - Gently introduce this section.
+    - List 2-3 specific areas for improvement, focusing on the four official criteria (Task Achievement/Response, Coherence & Cohesion, Lexical Resource, Grammatical Range & Accuracy).
+    - For each point, briefly explain *why* it's important and give a clear example of how to improve it.
+
+    ### Actionable Suggestions ✨
+    - Provide 1-2 final, simple, and encouraging tips for their next practice essay.
 
     **Essay to evaluate:**
     ---
@@ -584,7 +592,10 @@ export const generateSentenceForStress = async (apiKey: string): Promise<string>
 export const generateSpeakingPractice = async (apiKey: string, difficulty: number): Promise<SpeakingPractice> => {
     if (!apiKey) throw new Error("API Key not provided.");
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Create a full, cohesive IELTS speaking test (Parts 1, 2, and 3) on a single topic suitable for a teenager. The questions should be clear and natural, with a difficulty level appropriate for a test-taker aiming for band score ${difficulty}. Return the entire output as a single JSON object.`;
+    const prompt = `Create a full, cohesive IELTS speaking test (Parts 1, 2, and 3) on a single topic suitable for a teenager.
+The topic should be creative and unique, avoiding generic themes often found in textbooks (like 'hometown' or 'hobbies' unless approached from a very fresh angle).
+The questions should be clear, natural, and engaging, with a difficulty level appropriate for a test-taker aiming for band score ${difficulty}.
+Return the entire output as a single JSON object.`;
 
     try {
         const response = await ai.models.generateContent({
